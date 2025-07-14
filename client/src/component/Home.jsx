@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import AnimatedPlane from "./animatedplane"; // 👈 import this at the top
 
 const host = "http://localhost:8000";
 
@@ -30,8 +31,10 @@ const Home = () => {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 mt-10">
-      <h2 className="text-xl font-bold">Get Student Marks</h2>
+    <div className="relative flex flex-col items-center gap-4 mt-10">
+      <AnimatedPlane /> {/* ✈️ plane flying across the top */}
+
+      <h2 className="text-xl font-bold mt-12">Get Student Marks</h2>
 
       <input
         type="text"
