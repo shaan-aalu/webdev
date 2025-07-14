@@ -20,6 +20,7 @@ export const createTeacher = async (req, res) => {
 
 export const getAllteacher = async (req, res) => {
     try {
+        //console.log(first)
         const allteacher = await Teacher.find({})
         return res.status(202).send(allteacher) //array
     } catch (error) {
