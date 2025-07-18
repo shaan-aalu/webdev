@@ -1,16 +1,20 @@
 import { Student } from "../Model/student.model.js";
-
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 // Create new student
 export const createStudent = async (req, res) => {
   try {
-    const { name, rollNo, department, school, semester } = req.body;
+    const { name, rollNo, department, school, semester, password } = req.body;
     if (!name || !rollNo || !department || !school || !semester)
       return res.status(400).send("All fields are required");
 
     const oldstudent = await Student.findOne({ name })
     if (oldstudent) return res.status(400).send("change already exists");
 
-    const newStudent = new Student({ name, rollNo, department, school, semester });
+    const hashedPassword = await bcrypt.hash(password, 12)
+    if (!hashedPassword) return res.status(404).send("error while creating the hashpass")
+
+    const newStudent = new Student({ name, rollNo, department, school, semester, password: hashedPassword });
     const saved = await newStudent.save();
 
     return res.status(201).send(saved);
@@ -160,10 +164,144 @@ export const uploadMarks = async (req, res) => {
 
 
 
+
+
+
+
+
+
+// SIGNUP API
+export const studentSignup = async (req, res) => {
+  try {
+    const { phone, password } = req.body;
+
+    if (!phone || !password)
+      return res.status(400).send("Phone and password are required");
+
+    const existing = await Student.findOne({ phone });
+    if (existing) return res.status(400).send("Phone already registered");
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000); // now + 15 min
+
+    const newStudent = new Student({
+      phone,
+      password: hashedPassword,
+      isPhoneVerified: false,
+      otp,
+      otpExpiry
+    });
+
+    await newStudent.save();
+
+    // NOTE: In production, send OTP via SMS provider (e.g. Twilio)
+
+    return res.status(201).json({
+      message: "Signup successful. OTP sent to phone.",
+      phone,
+      otp, // ⚠️ Only for testing. Remove in production
+    });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+// VERIFY OTP API
+export const verifyStudentOtp = async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+
+    if (!phone || !otp)
+      return res.status(400).send("Phone and OTP are required");
+
+    const student = await Student.findOne({ phone });
+    if (!student) return res.status(404).send("Student not found");
+
+    if (student.isPhoneVerified)
+      return res.status(400).send("Phone already verified");
+
+    if (student.otp !== otp)
+      return res.status(400).send("Invalid OTP");
+
+    if (student.otpExpiry < new Date())
+      return res.status(400).send("OTP has expired");
+
+    // ✅ Verification successful
+    student.isPhoneVerified = true;
+    student.otp = undefined;
+    student.otpExpiry = undefined;
+
+    await student.save();
+
+    return res.status(200).json({
+      message: "Phone verification successful",
+      studentId: student._id
+    });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+
+export const handleForgotPassword = async (req, res) => {
+  const { phone, otp, newPassword } = req.body;
+
+  // Case 1: Only phone → Send OTP
+  if (phone && !otp && !newPassword) {
+    const student = await Student.findOne({ phone });
+    if (!student) return res.status(404).send("Student not found");
+
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    student.otp = generatedOtp;
+    student.otpExpiry = otpExpiry;
+    await student.save();
+
+    // In production, send SMS here
+    return res.status(200).json({
+      message: "OTP sent to phone for password reset",
+      otp: generatedOtp  // ⚠️ remove in production
+    });
+  }
+
+  // Case 2: All fields provided → Verify & reset password
+  if (phone && otp && newPassword) {
+    const student = await Student.findOne({ phone });
+    if (!student) return res.status(404).send("Student not found");
+
+    if (student.otp !== otp) return res.status(400).send("Invalid OTP");
+    if (student.otpExpiry < new Date()) return res.status(400).send("OTP expired");
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    student.password = hashed;
+
+    student.otp = undefined;
+    student.otpExpiry = undefined;
+
+    await student.save();
+
+    return res.status(200).send("Password reset successful");
+  }
+
+  // If required fields are missing
+  return res.status(400).send("Invalid request. Please provide valid inputs.");
+};
+
+
+
 export const getStudentMarks = async (req, res) => {
   try {
-    const { name, rollNo } = req.body;
-    const student = await Student.findOne({ name, rollNo })
+    // const { name, rollNo } = req.body;
+    const decode = req.decode
+    console.log(decode)
+    const student = await Student.findOne({ _id: decode.id })
     if (!student) return res.status(404).send("student not found")
 
     return res.status(202).send(student.marks)
@@ -171,3 +309,85 @@ export const getStudentMarks = async (req, res) => {
     return res.status(404).send({ e })
   }
 }
+
+
+
+export const checkAuth = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    console.log(authHeader)
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).send("Not logged in");
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    const decoded = jwt.verify(token, process.env.JWT);
+    req.decode = decoded
+    next()
+  } catch (error) {
+    return res.status(404).send(error)
+  }
+
+};
+
+export const loginUser = async (req, res) => {
+  try {
+    const { rollNo, password } = req.body;
+    const authHeader = req.headers?.authorization;
+    console.log(authHeader)
+
+    if (authHeader) {
+      const tokenUsed = authHeader.split(" ")[1];
+
+      const decoded = jwt.verify(tokenUsed, process.env.JWT);
+
+      const userId = decoded.id;
+
+      if (userId) {
+        const oldUser = await Student.findOne({ _id: userId })
+        if (!oldUser) return res.status(404).send("Error while auto login")
+
+        else return res.status(202).send("Auto login successful")
+      }
+    }
+
+
+    // Check if student exists
+    const student = await Student.findOne({ rollNo });
+    if (!student) {
+      return res.status(404).send("Student not found");
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, student.password);
+    if (!isMatch) {
+      return res.status(401).send("Invalid credentials");
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: student._id, rollNo: student.rollNo },
+      process.env.JWT,
+      { expiresIn: "1h" }
+    );
+
+    // ✅ Store token in httpOnly cookie
+    res
+      .send({ token })
+      .json({
+        message: "Login successful",
+        token  // <--- this will be shown in Postman response body
+      });
+
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).send("Server error");
+  }
+};
+
+
+
+
+

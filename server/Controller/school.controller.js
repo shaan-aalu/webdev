@@ -22,7 +22,7 @@ export const createschool = async (req, res) => {
         return res.status(202).send("School created ", newschool)
     } catch (error) {
         return res.status(404).send("error " + error)
-    }
+    } 
 }
 
 

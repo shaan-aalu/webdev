@@ -18,6 +18,10 @@ import Home from './component/Home';
 export const host = "http://localhost:8000"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import Navbar from './component/Navbar';
+import Signup from './component/Student/signup';
+import Login from './component/Student/Login';
+import VerifyOtp from './component/Student/VerifyOtp';
+import PrivateRoute from './component/PrivateRoute';
 
 const SchoolManagement = () => {
   const [schools, setSchools] = useState([]);
@@ -81,7 +85,7 @@ const SchoolManagement = () => {
       case 'updateSchool':
         return <Updateschool />
       case 'ManageSchoolDepartments':
-        return <ManageSchoolDepartments/>
+        return <ManageSchoolDepartments />
       case 'createDept':
         return <CreateDept />
       case 'updateDept':
@@ -97,7 +101,7 @@ const SchoolManagement = () => {
       case 'deleteTeacher':
         return <DeleteTeacher />
       case 'TeacherSubjectManager':
-        return <TeacherSubjectManager/>
+        return <TeacherSubjectManager />
       default:
         return null;
     }
@@ -154,13 +158,23 @@ const SchoolManagement = () => {
 
 const App = () => {
   return (
-    <Router>
-      <Navbar/>
+<Router>
+      <Navbar />
       <Routes>
+        <Route path="/login" element={<Login />} />
         <Route path="/school" element={<SchoolManagement />} />
-        <Route path="/" element={<Home />} />
         <Route path="/teacher" element={<Teacher />} />
         <Route path="/student" element={<Student />} />
+        
+        {/* ✅ Protect Home route */}
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          }
+        />
       </Routes>
     </Router>
   )

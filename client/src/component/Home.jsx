@@ -1,25 +1,21 @@
 import React, { useState } from "react";
 import axios from "axios";
-import AnimatedPlane from "./animatedplane"; // 👈 import this at the top
+import AnimatedPlane from "./animatedplane";
 
 const host = "http://localhost:8000";
 
 const Home = () => {
-  const [rollNo, setRollNo] = useState("");
-  const [name, setName] = useState("");
   const [marks, setMarks] = useState([]);
   const [error, setError] = useState("");
 
   const fetchStudentMarks = async () => {
-    if (!name || !rollNo) {
-      setError("Please enter both name and roll number");
-      return;
-    }
-
     try {
-      const res = await axios.post(`${host}/getStudentMarks`, {
-        name,
-        rollNo,
+      const token = localStorage.getItem("token");
+
+      const res = await axios.get(`${host}/getStudentMarks`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       setMarks(res.data);
@@ -29,27 +25,12 @@ const Home = () => {
       setMarks([]);
     }
   };
-
+ 
   return (
-    <div className="relative flex flex-col items-center gap-4 mt-10">
-      <AnimatedPlane /> {/* ✈️ plane flying across the top */}
+ <div className="relative flex flex-col items-center gap-4 mt-10 overflow-hidden">
+  <AnimatedPlane />
 
       <h2 className="text-xl font-bold mt-12">Get Student Marks</h2>
-
-      <input
-        type="text"
-        placeholder="Enter Name"
-        className="border px-3 py-2 rounded-md w-72"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Enter Roll No"
-        className="border px-3 py-2 rounded-md w-72"
-        value={rollNo}
-        onChange={(e) => setRollNo(e.target.value)}
-      />
 
       <button
         onClick={fetchStudentMarks}

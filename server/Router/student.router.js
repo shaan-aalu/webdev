@@ -7,9 +7,15 @@ import {
   deleteStudent,
   updateStudent,
   uploadMarks,
-  getStudentMarks
+  getStudentMarks,
+  studentSignup,
+  verifyStudentOtp,
+  handleForgotPassword,
+  loginUser,
+  checkAuth
 
 } from "../Controller/student.controller.js";
+
 
 const studentrouter = Router();
 
@@ -20,7 +26,12 @@ studentrouter.delete("/deleteStudent/:studentId", deleteStudent);
 studentrouter.get("/getFilteredStudents", getFilteredStudents);
 studentrouter.put("/updateStudent/:studentId", updateStudent)
 studentrouter.post("/uploadMarks", uploadMarks);
-studentrouter.post("/getStudentMarks", getStudentMarks);
+studentrouter.get("/getStudentMarks", checkAuth, getStudentMarks);
+studentrouter.post("/studentSignup", studentSignup);
+studentrouter.post("/verifyStudentOtp", verifyStudentOtp);
+studentrouter.post("/handleForgotPassword", handleForgotPassword);
+// studentrouter.post("/checkAuth",checkAuth)
 
 
+studentrouter.post('/loginStudent', loginUser)
 export { studentrouter };

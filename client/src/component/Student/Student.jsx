@@ -10,7 +10,8 @@ const StudentManager = () => {
     rollNo: "",
     department: "",
     school: "",
-    semester: ""
+    semester: "",
+    password: "" // ✅ Added password
   });
 
   const [schools, setSchools] = useState([]);
@@ -18,7 +19,6 @@ const StudentManager = () => {
   const [students, setStudents] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
 
-  // Fetch all schools and students on initial load
   useEffect(() => {
     axios.get(`${host}/getAllSchool`).then(res => setSchools(res.data));
     axios.get(`${host}/getAllStudents`).then(res => setStudents(res.data));
@@ -29,12 +29,18 @@ const StudentManager = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: "", rollNo: "", department: "", school: "", semester: "" });
+    setFormData({
+      name: "",
+      rollNo: "",
+      department: "",
+      school: "",
+      semester: "",
+      password: "" // ✅ Reset password too
+    });
     setSelectedStudentId("");
     setDepartments([]);
   };
 
-  // When a school is selected, get its departments directly
   const handleSchoolChange = (schoolId) => {
     const selectedSchool = schools.find(s => s._id === schoolId);
     setDepartments(selectedSchool?.department || []);
@@ -59,14 +65,14 @@ const StudentManager = () => {
     if (student) {
       const selectedSchool = schools.find(s => s._id === student.school);
       setDepartments(selectedSchool?.department || []);
-
       setSelectedStudentId(id);
       setFormData({
         name: student.name,
         rollNo: student.rollNo,
         department: student.department,
         school: student.school,
-        semester: student.semester
+        semester: student.semester,
+        password: "" // Leave password empty for update
       });
     }
   };
@@ -103,7 +109,6 @@ const StudentManager = () => {
         <button onClick={() => setView("delete")} className={`px-4 py-2 ${view === "delete" ? "bg-blue-700 text-white" : "bg-gray-200"}`}>Delete</button>
       </div>
 
-      {/* Common Select for Update/Delete */}
       {(view === "update" || view === "delete") && (
         <select
           onChange={(e) => handleSelectUpdate(e.target.value)}
@@ -117,7 +122,6 @@ const StudentManager = () => {
         </select>
       )}
 
-      {/* Form Fields */}
       {(view === "create" || (view === "update" && selectedStudentId)) && (
         <form onSubmit={view === "create" ? handleCreate : e => e.preventDefault()} className="space-y-3">
           <input
@@ -169,12 +173,28 @@ const StudentManager = () => {
             className="p-2 border w-full"
             required
           />
-          {view === "create" && <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Create</button>}
-          {view === "update" && <button onClick={handleUpdate} className="bg-yellow-500 text-white px-4 py-2 rounded">Update</button>}
+
+          {view === "create" && (
+            <input
+              name="password"
+              type="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+              className="p-2 border w-full"
+              required
+            />
+          )}
+
+          {view === "create" && (
+            <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Create</button>
+          )}
+          {view === "update" && (
+            <button onClick={handleUpdate} className="bg-yellow-500 text-white px-4 py-2 rounded">Update</button>
+          )}
         </form>
       )}
 
-      {/* Delete Button */}
       {view === "delete" && selectedStudentId && (
         <button onClick={handleDelete} className="bg-red-600 text-white px-4 py-2 rounded">Delete</button>
       )}
