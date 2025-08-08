@@ -1,21 +1,58 @@
 import { Teacher } from "../Model/teacher.model.js"
 
+// controllers/teacherController.js
+import bcrypt from 'bcryptjs';
+
+
 export const createTeacher = async (req, res) => {
-    try {
-        const { name } = req.body;
-        if (!name) return res.status(400).send("Name is required");
+  try {
+    const { name, password, rollNo } = req.body;
 
-        const existingTeacher = await Teacher.findOne({ name });
-        if (existingTeacher) return res.status(409).send("Teacher already exists");
-
-        const newTeacher = new Teacher({ name, subject: [] });
-        const saved = await newTeacher.save();
-
-        return res.status(201).send(saved);
-    } catch (error) {
-        return res.status(500).send({ error: error.message });
+    // 1) validate inputs
+    if (!name || !password || !rollNo) {
+      return res
+        .status(400)
+        .json({ message: 'name, password and rollNo are all required.' });
     }
+
+    // 2) check for existing name OR rollNo
+    const exists = await Teacher.findOne({
+      $or: [{ name }, { rollNo }]
+    });
+    if (exists) {
+      return res
+        .status(409)
+        .json({ message: 'A teacher with that name or rollNo already exists.' });
+    }
+
+    // 3) hash the password
+    const salt = await bcrypt.genSalt(12);
+    const hashed = await bcrypt.hash(password, salt);
+
+    // 4) create & save
+    const teacher = new Teacher({
+      name,
+      password: hashed,
+      rollNo,
+      subject: []  // start with no subjects
+    });
+    await teacher.save();
+
+    // 5) respond (omit password)
+    return res.status(201).json({
+      message: 'Teacher created successfully.',
+      teacher: { 
+        id: teacher._id,
+        name: teacher.name,
+        rollNo: teacher.rollNo
+      }
+    });
+  } catch (err) {
+    console.error('createTeacher error:', err);
+    return res.status(500).json({ message: err.message });
+  }
 };
+
 
 
 export const getAllteacher = async (req, res) => {

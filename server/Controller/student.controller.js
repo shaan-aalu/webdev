@@ -1,4 +1,6 @@
 import { Student } from "../Model/student.model.js";
+import {Admin}  from "../Model/admin.model.js";
+import { Teacher } from "../Model/teacher.model.js"
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 // Create new student
@@ -64,7 +66,6 @@ export const updateStudentMarks = async (req, res) => {
 };
 
 
-// Delete student
 export const deleteStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
@@ -165,12 +166,6 @@ export const uploadMarks = async (req, res) => {
 
 
 
-
-
-
-
-
-// SIGNUP API
 export const studentSignup = async (req, res) => {
   try {
     const { phone, password } = req.body;
@@ -211,7 +206,6 @@ export const studentSignup = async (req, res) => {
 
 
 
-// VERIFY OTP API
 export const verifyStudentOtp = async (req, res) => {
   try {
     const { phone, otp } = req.body;
@@ -330,62 +324,58 @@ export const checkAuth = (req, res, next) => {
   }
 
 };
-
 export const loginUser = async (req, res) => {
   try {
-    const { rollNo, password } = req.body;
+    const { rollNo, password, type } = req.body;
     const authHeader = req.headers?.authorization;
-    console.log(authHeader)
+    
 
+    // Function to get user by ID or rollNo
+    const getUser = async (identifier, byId = false) => {
+      if (type === "student")
+        return byId ? Student.findById(identifier) : Student.findOne({ rollNo: identifier });
+      if (type === "teacher")
+        return byId ? Teacher.findById(identifier) : Teacher.findOne({ rollNo: identifier });
+      if (type === "admin")
+        return byId ? Admin.findById(identifier) : Admin.findOne({ rollNo: identifier });
+      return null;
+    };
+
+    // Handle auto-login
     if (authHeader) {
       const tokenUsed = authHeader.split(" ")[1];
-
       const decoded = jwt.verify(tokenUsed, process.env.JWT);
+      const { id, type } = decoded;
 
-      const userId = decoded.id;
+      const user = await getUser(id, true);
+      if (!user) return res.status(404).send("Error while auto login");
 
-      if (userId) {
-        const oldUser = await Student.findOne({ _id: userId })
-        if (!oldUser) return res.status(404).send("Error while auto login")
-
-        else return res.status(202).send("Auto login successful")
-      }
+      return res.status(202).json({ message: "Auto login successful", type });
     }
 
+    // Handle manual login
+    if (!type || !rollNo || !password)
+      return res.status(400).send("Roll number, password, and type are required");
 
-    // Check if student exists
-    const student = await Student.findOne({ rollNo });
-    if (!student) {
-      return res.status(404).send("Student not found");
-    }
+    const user = await getUser(rollNo);
+    if (!user) return res.status(404).send(`${type} not found`);
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, student.password);
-    if (!isMatch) {
-      return res.status(401).send("Invalid credentials");
-    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).send("Invalid credentials");
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: student._id, rollNo: student.rollNo },
-      process.env.JWT,
-      { expiresIn: "1h" }
-    );
+    const token = jwt.sign({ id: user._id, type }, process.env.JWT, { expiresIn: "1h" });
 
-    // ✅ Store token in httpOnly cookie
-    res
-      .send({ token })
-      .json({
-        message: "Login successful",
-        token  // <--- this will be shown in Postman response body
-      });
-
-
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      type,
+    });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).send("Server error");
   }
 };
+
 
 
 

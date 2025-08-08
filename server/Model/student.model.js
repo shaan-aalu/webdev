@@ -6,14 +6,15 @@ const markSchema = new mongoose.Schema({
 });
 
 const studentSchema = new mongoose.Schema({
-  name: { type: String },                  // optional
-  rollNo: { type: String },                // optional
+  name: { type: String, required: true },
+  rollNo: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+
   department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
   school: { type: mongoose.Schema.Types.ObjectId, ref: "School" },
-  semester: { type: Number },              // optional
+  semester: { type: Number },
   marks: [markSchema],
-
-  password: { type: String},
 });
 
 export const Student = mongoose.model("Student", studentSchema);
+

@@ -1,6 +1,3 @@
-
-
-
 import mongoose from "mongoose";
 
 const subjectSchema = new mongoose.Schema({
@@ -10,7 +7,9 @@ const subjectSchema = new mongoose.Schema({
 });
 
 const teacherSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+  name: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  rollNo: { type: String, required: true, unique: true },
   subject: [subjectSchema],
 });
 

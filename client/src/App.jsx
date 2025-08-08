@@ -19,7 +19,7 @@ export const host = "http://localhost:8000"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import Navbar from './component/Navbar';
 import Signup from './component/Student/signup';
-import Login from './component/Student/Login';
+import Login from './component/Login';
 import VerifyOtp from './component/Student/VerifyOtp';
 import PrivateRoute from './component/PrivateRoute';
 

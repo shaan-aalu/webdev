@@ -33,5 +33,5 @@ studentrouter.post("/handleForgotPassword", handleForgotPassword);
 // studentrouter.post("/checkAuth",checkAuth)
 
 
-studentrouter.post('/loginStudent', loginUser)
+studentrouter.post('/loginUser', loginUser)
 export { studentrouter };
